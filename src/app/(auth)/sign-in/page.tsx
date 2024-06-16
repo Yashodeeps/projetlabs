@@ -1,21 +1,134 @@
 "use client";
 
-import { useSession, signIn, signOut } from "next-auth/react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import Link from "next/link";
+import * as z from "zod";
+import { useEffect, useState } from "react";
+import { useDebounceCallback } from "usehooks-ts";
+import { useToast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
+import { SignupSchema } from "@/Schema/SignupSchema";
+import axios, { AxiosError } from "axios";
+import { ApiResponse } from "@/types/ApiResponse";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { SigninSchema } from "@/Schema/SigninSchema";
+import { signIn } from "next-auth/react";
 
-export default function Component() {
-  const { data: session } = useSession();
-  if (session) {
-    return (
-      <>
-        Signed in as {session.user.email} <br />
-        <button onClick={() => signOut()}>Sign out</button>
-      </>
-    );
-  }
+const page = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { toast } = useToast();
+  const router = useRouter();
+
+  //zod implementation
+  const form = useForm<z.infer<typeof SigninSchema>>({
+    resolver: zodResolver(SigninSchema),
+    defaultValues: {
+      identifier: "",
+      password: "",
+    },
+  });
+
+  const onSubmit = async (data: z.infer<typeof SigninSchema>) => {
+    setIsSubmitting(true);
+    const result = await signIn("credentials", {
+      redirect: false,
+      identifier: data.identifier,
+      password: data.password,
+    });
+
+    if (result?.error) {
+      toast({
+        title: "Login failed",
+        description: "Incorrect username/ email or password",
+        variant: "destructive",
+      });
+    }
+
+    if (result?.url) {
+      router.replace("/myworkspace");
+    }
+    setIsSubmitting(false);
+  };
+
   return (
-    <>
-      Not signed in <br />
-      <button onClick={() => signIn()}>Sign in</button>
-    </>
+    <div className="flex justify-center items-center min-h-screen bg-gray-800">
+      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
+        <div className="text-center">
+          <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
+            Join ProJet Labs
+          </h1>
+          <p className="mb-4">Build. Collaborate</p>
+        </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              name="identifier"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email/Username</FormLabel>
+                  <FormControl>
+                    <Input placeholder="email/ username" {...field} />
+                  </FormControl>
+
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              name="password"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="password" {...field} />
+                  </FormControl>
+
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> please wait
+                </>
+              ) : (
+                "Sign in"
+              )}
+            </Button>
+          </form>
+          <div className="text-center mt-4">
+            <p>
+              New to ProJet?
+              <Link
+                href="/sign-in"
+                className="text-blue-600 hover:text-blue-800"
+              >
+                OnBoard here
+              </Link>
+            </p>
+          </div>
+        </Form>
+      </div>
+    </div>
   );
-}
+};
+
+export default page;

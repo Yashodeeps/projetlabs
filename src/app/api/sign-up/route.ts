@@ -10,7 +10,6 @@ const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
   const prisma = await dbconnect();
-  console.log("prisma from route post", prisma);
   try {
     const { username, email, password, name } = await req.json();
 
@@ -82,11 +81,14 @@ export async function POST(req: NextRequest) {
     }
 
     //send verification email
+    console.log("verifyCode", verifyCode);
     const emailResponse = await sendVerificationEmail(
       email,
       username,
       verifyCode
     );
+
+    console.log("emailResponse", emailResponse);
 
     if (!emailResponse.success) {
       return NextResponse.json(

@@ -21,5 +21,3 @@ export async function dbconnect(): Promise<PrismaClient> {
     throw error;
   }
 }
-
-dbconnect();
